@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  email     String    @unique
+  password  String
+  publicKey String?   // <-- ADDED: Public key for E2EE (optional, can be null for legacy users)
+  messagesSent     Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  friends   Friend[]  @relation("UserFriends")
+  friendOf  Friend[]  @relation("FriendOf")
+}
+
+model Message {
+  id                 Int      @id @default(autoincrement())
+  cipherForSender    String
+  cipherForRecipient String
+  sender             User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderId           Int
+  receiver           User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId         Int
+  createdAt          DateTime @default(now())
+}
+
+model Friend {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation("UserFriends", fields: [userId], references: [id])
+  userId    Int
+  friend    User    @relation("FriendOf", fields: [friendId], references: [id])
+  friendId  Int
+  createdAt DateTime @default(now())
+  status    String   @default("accepted")
+
+  @@unique([userId, friendId])
+}
